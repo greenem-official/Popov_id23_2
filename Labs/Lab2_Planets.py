@@ -7,6 +7,18 @@ def drawAt(canvas: Canvas, pos, radius, outline='', width=1, fill=''):
     return canvas.create_oval(pos[0] - radius, pos[1] - radius, pos[0] + radius, pos[1] + radius,
                                      outline=outline, width=width, fill=fill)
 
+
+def findXItemCenter(canvas, item):
+    coords = canvas.bbox(item)
+    xOffset = - ((coords[2] - coords[0]) / 2)
+    return xOffset
+
+def drawCenteredText(canvas: Canvas, position, text: str):
+    textId = canvas.create_text(0, 0, text=text, anchor="nw", fill="black", font=("Arial", 14))
+    xOffset = findXItemCenter(canvas, textId)
+    extraOffset = (2, -8)
+    canvas.move(textId, position[0] + xOffset + extraOffset[0], position[1] + extraOffset[1])
+
 class Planet:
     parent: "Planet" = None
     min_color_value = 0
@@ -64,28 +76,31 @@ class Planet:
         hex_color = f'#{red:02X}{green:02X}{blue:02X}'
         return hex_color
 
-    def __drawMyself(self, canvas: Canvas):
+    def __drawMyself(self, canvas: Canvas, drawText):
         if self.position is None:
             print("None position")
             return
 
         color = self.__interpolate_color(self.density)
         drawAt(canvas=canvas, pos=self.position, radius=self.size/2, fill=color, width=4)
+        if drawText:
+            drawCenteredText(canvas=canvas, position=self.position, text=self.name)
 
-    def drawRecursively(self, canvas: Canvas, timeScale):
+    def drawRecursively(self, canvas: Canvas, timeScale, drawText):
         if self.parent is not None:
             self.position = (self.parent.position[0] + self.__getRelPosFromAngle()[0], self.parent.position[1] + self.__getRelPosFromAngle()[1])
             self.angle += self.speed * timeScale
 
-        self.__drawMyself(canvas)
+        self.__drawMyself(canvas=canvas, drawText=drawText)
         for child in self.children:
-            child.drawRecursively(canvas, timeScale)
+            child.drawRecursively(canvas=canvas, timeScale=timeScale, drawText=drawText)
 
 class SolarSystemSimulation:
-    def __init__(self, size, fps, timeScale):
+    def __init__(self, size, fps, timeScale, drawNames=False):
         self.__size = size
         self.__fps = fps
         self.timeScale = timeScale
+        self.drawNames = drawNames
         self.__lastFrameTimestamp = time.time()
         self.__deltaTime = 0
         self.__mainPlanet = Planet('L0', 40, 100, 0)
@@ -132,7 +147,7 @@ class SolarSystemSimulation:
         self.__lastFrameTimestamp = time.time()
 
     def __drawPlanets(self):
-        self.__mainPlanet.drawRecursively(self.__canvas, self.timeScale)
+        self.__mainPlanet.drawRecursively(canvas=self.__canvas, timeScale=self.timeScale, drawText=self.drawNames)
 
     def __drawFrame(self):
         self.__calculateTime()
@@ -143,5 +158,5 @@ class SolarSystemSimulation:
         self.__scheduleNextFrame()
 
 
-simulation = SolarSystemSimulation(size=700, fps=60, timeScale=0.2)
+simulation = SolarSystemSimulation(size=700, fps=60, timeScale=0.2, drawNames=True)
 simulation.start()

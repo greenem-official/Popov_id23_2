@@ -1,47 +1,21 @@
 from tkinter import *
 import time
 import math
+from Labs.Utils.NavigationUtils import *
 
-
-class GlobalPositionData:
-    position: tuple[int, int]
-    scale: float
-    renderWindowSize: tuple[int, int]
-
-    def __init__(self):
-        self.position = (0, 0)
-        self.scale = 1
-
-
-class ControlsData:
-    lastDragCoords: tuple[int, int]
-    state = 'released'
-
-    # def __init__(self):
-        # self.lastDragCoords = (0, 0)
-
-
-globalPositionData = GlobalPositionData()
-controlsData = ControlsData()
-
-def getIntPosScaled(raw_pos):
-    # if isinstance(raw_pos, int) or isinstance(raw_pos, float):
-    #     return int((raw_pos + globalPositionData.position) * globalPositionData.scale)
-    # else:
-    if isinstance(raw_pos, tuple):
-        # print(raw_pos)
-        # if raw_pos[0] == 20:
-            # print(str(globalPositionData.renderWindowSize[0] / 2) + ' + (' + str(raw_pos[0]) + " - " + str(globalPositionData.position[0]) + ") * " + str(globalPositionData.scale) + " = " + str(globalPositionData.renderWindowSize[0] / 2 + (raw_pos[0] - globalPositionData.position[0]) * globalPositionData.scale))
-
-        return int(globalPositionData.renderWindowSize[0] / 2 + (raw_pos[0] - globalPositionData.position[0]) * globalPositionData.scale), int(globalPositionData.renderWindowSize[1] / 2 + (raw_pos[1] - globalPositionData.position[1]) * globalPositionData.scale)
-    # if isinstance(raw_pos, list):
-    #     return [int((raw_pos[0]) * globalPositionData.scale - globalPositionData.position[0]), int((raw_pos[1]) * globalPositionData.scale - globalPositionData.position[1])]
-
-def drawSphereAt(canvas: Canvas, raw_pos, radius, outline='', width=1, fill=''):
-    point1 = (getIntPosScaled((raw_pos[0] - radius, raw_pos[1] - radius)))
-    point2 = (getIntPosScaled((raw_pos[0] + radius, raw_pos[1] + radius)))
+def drawSphereAt(navigation: Navigation, canvas: Canvas, raw_pos, radius, outline='', width=1, fill=''):
+    point1 = (navigation.getIntPosScaled((raw_pos[0] - radius, raw_pos[1] - radius)))
+    point2 = (navigation.getIntPosScaled((raw_pos[0] + radius, raw_pos[1] + radius)))
     return canvas.create_oval(point1[0], point1[1], point2[0], point2[1],
                               outline=outline, width=width, fill=fill)
+
+
+def drawCenteredText(navigation: Navigation, canvas: Canvas, raw_pos, text: str):
+    textId = canvas.create_text(0, 0, text=text, anchor="nw", fill="white", font=("Arial", 14))
+    xOffset = findXItemCenter(canvas, textId)
+    extraOffset = (2, -8)
+    xy = navigation.getIntPosScaled((raw_pos[0] + xOffset + extraOffset[0], raw_pos[1] + extraOffset[1]))
+    canvas.move(textId, xy[0], xy[1])
 
 
 def findXItemCenter(canvas, item):
@@ -49,35 +23,6 @@ def findXItemCenter(canvas, item):
     xOffset = - ((coords[2] - coords[0]) / 2)
     return xOffset
 
-
-def drawCenteredText(canvas: Canvas, raw_pos, text: str):
-    textId = canvas.create_text(0, 0, text=text, anchor="nw", fill="black", font=("Arial", 14))
-    xOffset = findXItemCenter(canvas, textId)
-    extraOffset = (2, -8)
-    canvas.move(textId, getIntPosScaled((raw_pos[0] + xOffset + extraOffset[0], raw_pos[1] + extraOffset[1])))
-
-
-def on_mousewheel(event):
-    # print(event.delta)
-    globalPositionData.scale += (event.delta / 120) / 10
-
-
-def on_mouse_drag(event):
-    if controlsData.state == 'released':
-        return
-    elif controlsData.state == 'clicked':
-        controlsData.lastDragCoords = (event.x, event.y)
-        controlsData.state = 'dragging'
-    elif controlsData.state == 'dragging':
-        globalPositionData.position = (globalPositionData.position[0] - (event.x - controlsData.lastDragCoords[0]), globalPositionData.position[1] - (event.y - controlsData.lastDragCoords[1]))
-    controlsData.lastDragCoords = (event.x, event.y)
-
-
-def on_mouse_left_click(event):
-    controlsData.state = 'clicked'
-
-def on_mouse_left_release(event):
-    controlsData.state = 'released'
 
 class Planet:
     parent: "Planet" = None
@@ -136,31 +81,34 @@ class Planet:
         hex_color = f'#{red:02X}{green:02X}{blue:02X}'
         return hex_color
 
-    def __drawMyself(self, canvas: Canvas, drawText):
+    def __drawMyself(self, navigation: Navigation, canvas: Canvas, drawText):
         if self.position is None:
             print("None position")
             return
 
         color = self.__interpolate_color(self.density)
-        drawSphereAt(canvas=canvas, raw_pos=self.position, radius=self.size / 2, fill=color, width=4)
+        drawSphereAt(navigation=navigation, canvas=canvas, raw_pos=self.position, radius=self.size / 2, fill=color, width=4)
         if drawText:
-            drawCenteredText(canvas=canvas, raw_pos=self.position, text=self.name)
+            drawCenteredText(navigation=navigation, canvas=canvas, raw_pos=self.position, text=self.name)
 
-    def drawRecursively(self, canvas: Canvas, timeScale, drawText):
+    def drawRecursively(self, navigation: Navigation, canvas: Canvas, timeScale, drawText):
         if self.parent is not None:
             self.position = (self.parent.position[0] + self.__getRelPosFromAngle()[0],
                              self.parent.position[1] + self.__getRelPosFromAngle()[1])
             self.angle += self.speed * timeScale
 
-        self.__drawMyself(canvas=canvas, drawText=drawText)
+        self.__drawMyself(navigation=navigation, canvas=canvas, drawText=drawText)
         for child in self.children:
-            child.drawRecursively(canvas=canvas, timeScale=timeScale, drawText=drawText)
+            child.drawRecursively(navigation=navigation, canvas=canvas, timeScale=timeScale, drawText=drawText)
 
 
 class SolarSystemSimulation:
-    def __init__(self, size, fps, timeScale, drawNames=False):
-        globalPositionData.renderWindowSize = (size, size)
+    def __init__(self, size, fps, timeScale, mouseSensitivity, scrollSensitivity, drawNames=False):
+        self.navigation = Navigation(self, (size, size))
+
         self.__fps = fps
+        self.mouseSensitivity = mouseSensitivity
+        self.scrollSensitivity = scrollSensitivity
         self.timeScale = timeScale
         self.drawNames = drawNames
         self.__lastFrameTimestamp = time.time()
@@ -169,15 +117,25 @@ class SolarSystemSimulation:
         self.__createPlanets()
 
         self.__root = Tk()
-        self.__canvas = Canvas(self.__root, width=globalPositionData.renderWindowSize[0], height=globalPositionData.renderWindowSize[1])
-        self.__canvas.pack()
+        self.__canvas = Canvas(self.__root, width=self.navigation.globalPositionData.renderWindowSize[0], height=self.navigation.globalPositionData.renderWindowSize[1], background='black')
+        self.__canvas.pack(fill="both", expand=True)
         self.__registerBindings()
 
+    @property
+    def root(self):
+        return self.__root
+
+    @property
+    def canvas(self):
+        return self.__canvas
+
     def __registerBindings(self):
-        self.__canvas.bind_all("<MouseWheel>", on_mousewheel)
-        self.__canvas.bind_all("<B1-Motion>", on_mouse_drag)
-        self.__canvas.bind_all("<Button-1>", on_mouse_left_click)
-        self.__canvas.bind_all("<ButtonRelease-1>", on_mouse_left_release)
+        self.__root.bind_all("<MouseWheel>", self.navigation.on_mousewheel)
+        self.__root.bind_all("<Motion>", self.navigation.on_mouse_movement)
+        self.__root.bind_all("<B1-Motion>", self.navigation.on_mouse_drag)
+        self.__root.bind_all("<Button-1>", self.navigation.on_mouse_left_click)
+        self.__root.bind_all("<ButtonRelease-1>", self.navigation.on_mouse_left_release)
+        self.__root.bind_all("<Configure>", self.navigation.on_window_movement_resizing)
 
     def start(self):
         self.__drawFrame()
@@ -216,17 +174,20 @@ class SolarSystemSimulation:
         self.__lastFrameTimestamp = time.time()
 
     def __drawPlanets(self):
-        self.__mainPlanet.drawRecursively(canvas=self.__canvas, timeScale=self.timeScale, drawText=self.drawNames)
+        self.__mainPlanet.drawRecursively(navigation=self.navigation, canvas=self.__canvas, timeScale=self.timeScale, drawText=self.drawNames)
 
     def __drawFrame(self):
         self.__calculateTime()
         self.__canvas.delete('all')
-        globalPositionData.renderWindowSize = (globalPositionData.renderWindowSize[0], globalPositionData.renderWindowSize[1])
+        self.navigation.globalPositionData.renderWindowSize = (self.navigation.globalPositionData.renderWindowSize[0], self.navigation.globalPositionData.renderWindowSize[1])
 
         self.__drawPlanets()
 
         self.__scheduleNextFrame()
 
 
-simulation = SolarSystemSimulation(size=800, fps=144, timeScale=0.1, drawNames=False)
-simulation.start()
+simulation = SolarSystemSimulation(size=800, fps=144, timeScale=0.05, mouseSensitivity=0.8, scrollSensitivity=0.8, drawNames=False)
+try:
+    simulation.start()
+except KeyboardInterrupt:
+    pass

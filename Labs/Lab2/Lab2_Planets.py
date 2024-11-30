@@ -1,17 +1,19 @@
+import tkinter as tk
 from tkinter import *
 import time
 import math
-from Labs.Utils.NavigationUtils import *
+import colorsys
+from Labs.Lab2.NavigationUtilsTkinter import *
 
-def drawSphereAt(navigation: Navigation, canvas: Canvas, raw_pos, radius, outline='', width=1, fill=''):
+def drawSphereAt(navigation: Navigation, canvas: Canvas, raw_pos, radius, outline='', width=1, fill='', tags=None):
     point1 = (navigation.getIntPosScaled((raw_pos[0] - radius, raw_pos[1] - radius)))
     point2 = (navigation.getIntPosScaled((raw_pos[0] + radius, raw_pos[1] + radius)))
     return canvas.create_oval(point1[0], point1[1], point2[0], point2[1],
-                              outline=outline, width=width, fill=fill)
+                              outline=outline, width=width, fill=fill, tags=tags)
 
 
-def drawCenteredText(navigation: Navigation, canvas: Canvas, raw_pos, text: str):
-    textId = canvas.create_text(0, 0, text=text, anchor="nw", fill="white", font=("Arial", 14))
+def drawCenteredText(navigation: Navigation, canvas: Canvas, raw_pos, text: str, tags=None):
+    textId = canvas.create_text(0, 0, tags=tags, text=text, anchor="nw", fill="white", font=("Arial", 14))
     xOffset = findXItemCenter(canvas, textId)
     extraOffset = (2, -8)
     xy = navigation.getIntPosScaled((raw_pos[0] + xOffset + extraOffset[0], raw_pos[1] + extraOffset[1]))
@@ -66,20 +68,34 @@ class Planet:
         childPlanet.linkToParent(self, distance)
         return self
 
+    def lerp(self, a, b, t):
+        return a + (b - a) * t
+
     def __interpolate_color(self, value):
         if value < self.min_color_value:
             value = self.min_color_value
         elif value > self.max_color_value:
             value = self.max_color_value
 
-        normalized_value = 1 - (value - self.min_color_value) / (self.max_color_value - self.min_color_value)
+        fromH = 125  # 267
+        toH = 0  # 0
 
-        red = int(255 * (1 - normalized_value) + 128 * normalized_value)
-        blue = int(60 * (1 - normalized_value) + 128 * normalized_value)
-        green = int(20 * (1 - normalized_value) + 128 * normalized_value)
+        h = self.lerp(fromH, toH, (value - self.min_color_value) / self.max_color_value)
+        # h = max(0, min(255, int(fromH * (1 - (value - self.min_color_value) / self.max_color_value))))
+        s = 55
+        v = 80
 
-        hex_color = f'#{red:02X}{green:02X}{blue:02X}'
-        return hex_color
+        # r, g, b = colorsys.hsv_to_rgb(int(h / 360), s, v)
+        #
+        # hex_color = f'#{r:02X}{g:02X}{b:02X}'
+        # print(r, g, b)
+        # hex_color = '#%02x%02x%02x' % (int(r), int(g), int(b))
+        # return hex_color
+
+        rgb = colorsys.hsv_to_rgb(h / 360, s / 100, v / 100)
+
+        return "#" + "".join("%02X" % round(i * 255) for i in rgb)
+        # ['1D3437', '0C2A42', '3A1B43', '303E26', '41171A', '331D1B', '3D2C1C', '453517']
 
     def __drawMyself(self, navigation: Navigation, canvas: Canvas, drawText):
         if self.position is None:
@@ -87,9 +103,9 @@ class Planet:
             return
 
         color = self.__interpolate_color(self.density)
-        drawSphereAt(navigation=navigation, canvas=canvas, raw_pos=self.position, radius=self.size / 2, fill=color, width=4)
+        drawSphereAt(navigation=navigation, canvas=canvas, raw_pos=self.position, radius=self.size / 2, fill=color, width=4, tags=('planet',))
         if drawText:
-            drawCenteredText(navigation=navigation, canvas=canvas, raw_pos=self.position, text=self.name)
+            drawCenteredText(navigation=navigation, canvas=canvas, raw_pos=self.position, text=self.name, tags=('planet_name',))
 
     def drawRecursively(self, navigation: Navigation, canvas: Canvas, timeScale, drawText):
         if self.parent is not None:
@@ -176,12 +192,38 @@ class SolarSystemSimulation:
     def __drawPlanets(self):
         self.__mainPlanet.drawRecursively(navigation=self.navigation, canvas=self.__canvas, timeScale=self.timeScale, drawText=self.drawNames)
 
+    label = None
+    # i = 0
+    frame = None
+
+    def __drawUI(self):
+        # self.i+=1
+        # if self.i < 10:
+        #     return
+        if self.frame is None:
+            # self.label = tkinter.Label(self.canvas, text='0 aaaaaaaaaaaaaaaaaaaaaaaaaaaa', bg='#333333', fg='white', font=('Arial', 18))
+            # self.canvas.create_window(0, 0, window=self.label)
+            self.frame = tk.Frame(self.canvas, background='gray')
+            self.frame.pack(side='top', expand=True, fill=BOTH)
+            # self.frame.grid()  # Или self.frame.grid(), если вам это нужно
+
+            # Добавьте элементы в frame
+            label1 = tk.Label(self.frame, text='Label 1')
+            label1.pack(side='left')  # Размещение слева
+
+            label2 = tk.Label(self.frame, text='Label 2')
+            label2.pack(side='left')  # Размещение справа от Label 1
+
     def __drawFrame(self):
         self.__calculateTime()
-        self.__canvas.delete('all')
+        self.__canvas.delete('planet', 'planet_text')
         self.navigation.globalPositionData.renderWindowSize = (self.navigation.globalPositionData.renderWindowSize[0], self.navigation.globalPositionData.renderWindowSize[1])
 
         self.__drawPlanets()
+        # self.__drawUI()
+        # self.__canvas.size = (800, 800) # self.navigation.globalPositionData.renderWindowSize
+
+        # print(self.navigation.globalPositionData.renderWindowSize)
 
         self.__scheduleNextFrame()
 

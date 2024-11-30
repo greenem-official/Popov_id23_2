@@ -1,0 +1,18 @@
+.NormalButton {
+    background-color: #1f1f1f;
+    color: white;
+    font-size: 16px;
+    font-family: Arial, serif;
+    padding: 10px;
+    border: none;
+}
+
+.SectionTitle {
+    color: rgb(128, 128, 128);
+    font-size: 16px;
+}
+
+.SimpleText {
+    color: white;
+    /*font-size: 12px;*/
+}

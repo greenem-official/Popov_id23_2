@@ -57,10 +57,10 @@ class Navigation:
         #     return
         # event.angleDelta().y()
 
-        if self.data.scrollSensitivity == 0:
+        if self.data.scrollSensitivity == 0 or self.globalPositionData.scale == 0.1 and event.angleDelta().y() < 0:
             return
 
-        self.globalPositionData.scale = max(0.001, self.globalPositionData.scale + (
+        self.globalPositionData.scale = max(0.1, self.globalPositionData.scale + (
                     event.angleDelta().y() // 120) / 10 * self.data.scrollSensitivity)
 
         sign = 1 if event.angleDelta().y() >= 0 else -1

@@ -105,7 +105,7 @@ class AsteroidMenu(DebuggableQWidget):
 
         self.modeSwitchButton = None
         self.modeSwitchButton = CirculatingButtonSwitch(data, ['Disabled', 'Enabled'], onValueChange=self.onAsteroidModeChange, buttonStyle=getStyle(StyleType.NormalButton))
-        self.speedWidget = AdvancedNumberWidget(data, 'Speed', (1, 200), 50, onValueChange=self.onSpeedChange)
+        self.speedWidget = AdvancedNumberWidget(data, 'Speed', (1, 400), 150, onValueChange=self.onSpeedChange)
         self.massWidget = AdvancedNumberWidget(data, 'Mass', (1, 5000), 50, onValueChange=self.onMassChange)
         self.sizeWidget = AdvancedNumberWidget(data, 'Diameter', (5, 100), 20, onValueChange=self.onSizeChange)
         launchBtn = QPushButton('Launch')

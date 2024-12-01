@@ -7,18 +7,6 @@ from Labs.Lab3.Data import Data
 from Labs.Lab3.util import CanvasUtils
 
 
-def getMovedPoint(point, angle_degrees, distance):
-    x, y = point
-    angle_radians = math.radians(angle_degrees)
-
-    dx = distance * math.cos(angle_radians)
-    dy = distance * math.sin(angle_radians)
-
-    new_x = x + dx
-    new_y = y + dy
-
-    return (new_x, new_y)
-
 def calculateDistance(point1, point2):
     x1, y1 = point1
     x2, y2 = point2
@@ -41,6 +29,7 @@ class Meteor:
         self.position = (0, 0)
         self.mass = self.__default_mass
         self.size = self.__default_size
+        self.color = QColor('white')
 
         self.angle = 0
         if angle is not None:
@@ -61,6 +50,9 @@ class Meteor:
     def setAngle(self, angle):
         self.angle = angle
 
+    def getSize(self):
+        return self.size
+
     def destroy(self):
         self.data.meteorManager.removeMeteor(self)
 
@@ -77,7 +69,7 @@ class Meteor:
                 self.mergeWithPlanet(planet)
 
     def __updatePhysics(self):
-        self.position = getMovedPoint(self.position, self.angle, self.speed * self.data.timeScale * self.data.deltaTime)
+        self.position = CanvasUtils.getMovedPoint(self.position, self.angle, self.speed * self.data.timeScale * self.data.deltaTime)
         if abs(self.position[0]) > 4000 or abs(self.position[1]) > 4000:
             self.destroy()
 
@@ -86,6 +78,13 @@ class Meteor:
     def updatePhysics(self):
         self.__updatePhysics()
 
+    def calculateColor(self):
+        self.color = CanvasUtils.interpolate_color(self.mass / max(1, self.size), self.min_color_value,
+                                                   self.max_color_value)
+
+    def getColor(self):
+        return self.color
+
     def __updateGraphics(self, painter: QPainter):
         if not self.visible:
             return
@@ -93,7 +92,7 @@ class Meteor:
         # if self.preparingMode:
         #     self.color = QColor(255, 255, 255)
         # else:
-        self.color = CanvasUtils.interpolate_color(self.mass / max(1, self.size), self.min_color_value, self.max_color_value)
+        self.calculateColor()
         # print(self.mass / max(1, self.size), self.color.hue())
         CanvasUtils.drawSphereAt(painter=painter, data=self.data, raw_pos=self.position, radius=self.size / 2, fill_color=self.color,
                                  outline_color=QColor(255, 255, 255), outline_width=3)
@@ -115,6 +114,7 @@ class MeteorManager:
     lastPressLocation = (0, 0)
     curDirectionTargetPoint = None
     dragDistanceThreshold = 2
+    min_drag_distance_to_draw_arrow = 5
     lastMeteorAngle = 0
 
     def __init__(self, data: Data):
@@ -208,8 +208,16 @@ class MeteorManager:
             if self.currentMeteor is not None:
                 self.currentMeteor.updateGraphics(painter)
                 if self.curDirectionTargetPoint is not None:
-                    CanvasUtils.drawLineAt(painter=painter, data=self.data,
-                                           point1_raw=self.lastPressLocation, point2_raw=self.curDirectionTargetPoint,
-                                           color=QColor(255, 255, 255), width=4)
+                    if calculateDistance(self.lastPressLocation, self.curDirectionTargetPoint) > self.min_drag_distance_to_draw_arrow:
+                        color = self.currentMeteor.getColor()
+                        color.setAlpha(120)
+
+                        CanvasUtils.drawArrowPointerAt(painter=painter, data=self.data, start_point_raw=self.lastPressLocation,
+                                                       angle_degrees=self.calculateAngle(self.lastPressLocation, self.curDirectionTargetPoint),
+                                                       length=100, originalSize=self.currentMeteor.getSize(), color=QColor('#77424245'), outlineColor=color, outlineWidth=2, long_side_ratio=5)
+                        # CanvasUtils.drawLineAt(painter=painter, data=self.data,
+                        #                        point1_raw=self.lastPressLocation, point2_raw=self.curDirectionTargetPoint,
+                        #                        color=QColor(255, 255, 255), width=4)
+                        # 424245 # 707cff
         for meteor in self.activeMeteors:
             meteor.updateGraphics(painter)

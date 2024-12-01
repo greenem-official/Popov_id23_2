@@ -1,4 +1,4 @@
-from PyQt6.QtGui import QColor, QPainter
+from PyQt6.QtGui import QColor, QPainter, QMouseEvent
 from PyQt6.QtWidgets import QWidget
 
 
@@ -9,6 +9,8 @@ class DebuggableQWidget(QWidget):
         super().__init__()
         self.data = data
         self.colorName = colorName
+        self.setAcceptDrops(False)
+        self.ignoreMouse = True
 
     def paintEvent(self, a0, painter=None):
         if not self.data.debug:
@@ -21,6 +23,18 @@ class DebuggableQWidget(QWidget):
                 painter = QPainter(self)
             if self.colorName is not None:
                 painter.fillRect(self.rect(), color_map[self.colorName])
+
+    def mousePressEvent(self, event: QMouseEvent):
+        if self.ignoreMouse:
+            event.accept()
+        else:
+            super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event: QMouseEvent):
+        if self.ignoreMouse:
+            event.accept()
+        else:
+            super().mouseMoveEvent(event)
 
 
 __opacity = 'cc'

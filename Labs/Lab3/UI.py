@@ -1,6 +1,7 @@
+from PyQt6.QtGui import QMouseEvent
 from PyQt6.QtWidgets import QVBoxLayout, QPushButton, QLabel, QSlider, QHBoxLayout, QSpacerItem, \
     QSizePolicy
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QPoint, QRect, QSize
 
 from Labs.Lab3.Data import Data
 from Labs.Lab3.util.Debugging import color_map, DebuggableQWidget
@@ -70,7 +71,6 @@ class AdvancedNumberWidget(DebuggableQWidget):
             self.slider.valueChanged.connect(self.funcOnRelease)
 
         self.result_label = QLabel('', self)
-        self.result_label.setStyleSheet(getStyle(StyleType.SimpleText))
         self.result_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.layout.addWidget(self.slider)
@@ -104,12 +104,11 @@ class AsteroidMenu(DebuggableQWidget):
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.modeSwitchButton = None
-        self.modeSwitchButton = CirculatingButtonSwitch(data, ['Disabled', 'Enabled'], onValueChange=self.onAsteroidModeChange, buttonStyle=getStyle(StyleType.NormalButton))
+        self.modeSwitchButton = CirculatingButtonSwitch(data, ['Disabled', 'Enabled'], onValueChange=self.onAsteroidModeChange)
         self.speedWidget = AdvancedNumberWidget(data, 'Speed', (1, 400), 150, onValueChange=self.onSpeedChange)
         self.massWidget = AdvancedNumberWidget(data, 'Mass', (1, 5000), 50, onValueChange=self.onMassChange)
         self.sizeWidget = AdvancedNumberWidget(data, 'Diameter', (5, 100), 20, onValueChange=self.onSizeChange)
         launchBtn = QPushButton('Launch')
-        launchBtn.setStyleSheet(getStyle(StyleType.NormalButton))
 
         launchBtn.clicked.connect(self.onLaunchBtnPressed)
 
@@ -126,7 +125,7 @@ class AsteroidMenu(DebuggableQWidget):
 
     def onLaunchBtnPressed(self):
         if self.data.meteorManager is not None:
-            self.data.meteorManager.launchCurMeteor(speed=self.speedWidget.getValue(), mass=self.massWidget.getValue())
+            self.data.meteorManager.launchCurMeteorAuto()
 
     def onSpeedChange(self, value=None):
         if value is None:
@@ -172,21 +171,19 @@ class SpecialControlWidget(DebuggableQWidget):
         # layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
 
-        title = QLabel('Debug')
+        title = QLabel('Inspect')
         title.setStyleSheet(getStyle(StyleType.SectionTitle))
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
 
-        debugButton = QPushButton('UI')
-        debugButton.setStyleSheet(getStyle(StyleType.NormalButton))
-        debugButton.clicked.connect(self.onDebugBtnClicked)
-
-        debugVisualsButton = QPushButton('Visuals')
-        debugVisualsButton.setStyleSheet(getStyle(StyleType.NormalButton))
+        debugVisualsButton = QPushButton('Data')
         debugVisualsButton.clicked.connect(self.onDebugVisualsBtnClicked)
 
-        layout.addWidget(debugButton)
+        debugButton = QPushButton('Layout')
+        debugButton.clicked.connect(self.onDebugBtnClicked)
+
         layout.addWidget(debugVisualsButton)
+        layout.addWidget(debugButton)
 
     def onDebugBtnClicked(self):
         self.data.debug = not self.data.debug
@@ -206,14 +203,16 @@ class GeneralControlWidget(DebuggableQWidget):
         self.setLayout(layout)
 
         self.pause_button = None
-        self.pause_button = CirculatingButtonSwitch(data, ['Pause', 'Paused'], onValueChange=self.onPauseStateChange, buttonStyle=getStyle(StyleType.NormalButton))
-        # self.pause_button.setStyleSheet(getStyle(StyleType.NormalButton))
+        self.pause_button = CirculatingButtonSwitch(data, ['Pause', 'Paused'], onValueChange=self.onPauseStateChange)
         layout.addWidget(self.pause_button)
 
         reset_view_button = QPushButton('Reset View')
-        reset_view_button.setStyleSheet(getStyle(StyleType.NormalButton))
         reset_view_button.clicked.connect(self.onResetViewButtonClicked)
         layout.addWidget(reset_view_button)
+
+        reset_simulation_button = QPushButton('Reset Simulation')
+        reset_simulation_button.clicked.connect(self.onResetSimulationButtonClicked)
+        layout.addWidget(reset_simulation_button)
 
         visualTitle = QLabel('Visual')
         visualTitle.setStyleSheet(getStyle(StyleType.SectionTitle))
@@ -265,6 +264,9 @@ class GeneralControlWidget(DebuggableQWidget):
         self.data.navigation.globalPositionData.position = (0, 0)
         self.data.navigation.globalPositionData.scale = 1
 
+    def onResetSimulationButtonClicked(self):
+        self.data.simulation.resetEverything()
+
 
 class LeftWidget(DebuggableQWidget):
     def __init__(self, data: Data):
@@ -305,6 +307,7 @@ class UIWidget(DebuggableQWidget):
     def __init__(self, data: Data):
         super().__init__(data, 'debugHBox')
         self.data = data
+        self.ignoreMouse = False
 
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -320,3 +323,8 @@ class UIWidget(DebuggableQWidget):
         layout.addWidget(leftWidget)
         layout.addItem(spacer)
         layout.addWidget(rightWidget)
+
+    def isPosInsideOfRect(self, pos: QPoint, rect: QRect):
+        return rect.contains(pos)
+        # return (rect.x() <= pos.x() <= rect.x() + rect.width() and
+        #         rect.y() <= pos.y() <= rect.y() + rect.height())

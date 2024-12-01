@@ -52,6 +52,14 @@ class Navigation:
         if isinstance(raw_pos, tuple):
             return (self.convertPosDisplayToAbstractX(raw_pos[0]), self.convertPosDisplayToAbstractY(raw_pos[1]))
 
+    def convertDistanceAbstractToDisplay(self, raw_distance):
+        if isinstance(raw_distance, float) or isinstance(raw_distance, int):
+            return raw_distance * self.globalPositionData.scale
+
+    def convertDistanceDisplayToAbstract(self, raw_distance):
+        if isinstance(raw_distance, float) or isinstance(raw_distance, int):
+            return raw_distance / self.globalPositionData.scale
+
     def on_mousewheel(self, event: QWheelEvent):
         # if self.controlsData.lastMousePos is None:
         #     return

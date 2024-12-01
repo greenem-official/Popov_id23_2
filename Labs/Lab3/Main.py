@@ -1,9 +1,12 @@
+import platform
 import sys
-
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QResizeEvent, QMouseEvent
-from PyQt6.QtWidgets import QApplication, QMainWindow
 import logging
+import ctypes
+
+from PyQt6 import QtGui
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QResizeEvent, QMouseEvent, QKeyEvent
+from PyQt6.QtWidgets import QApplication, QMainWindow
 
 from Labs.Lab3.Canvas import Canvas
 from Labs.Lab3.Data import Data
@@ -16,6 +19,7 @@ class MainWindow(QMainWindow):
         self.data = data
 
         self.setWindowTitle("Simulation")
+        self.setWindowIcon(QtGui.QIcon('data/icon.png'))
         self.setGeometry(100, 100, data.renderWindowSize[0], data.renderWindowSize[1])
 
         canvas = Canvas(data)
@@ -56,6 +60,23 @@ class MainWindow(QMainWindow):
         elif self.isLeftClicked(event) and self.data.meteorMode:
             self.data.meteorManager.onMouseDragged(event)
 
+    def keyReleaseEvent(self, event: QKeyEvent):
+        if Qt.Key.Key_Return == event.key():
+            if self.data.meteorManager is not None:
+                if self.data.meteorManager.currentMeteor is not None:
+                    self.data.meteorManager.launchCurMeteorAuto()
+                else:
+                    self.data.meteorManager.setMeteorSpawnPoint()
+
+
+def enableTaskbarIcon():
+    myappid = 'org.daylight.space_simulation'
+    if platform.system().lower() == 'windows':
+        try:
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+        except:
+            pass
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -64,6 +85,7 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
     app.setStyleSheet(StylesManager.load_style('data/styles/style.css'))
+    enableTaskbarIcon()
 
     window = MainWindow(data)
     window.show()

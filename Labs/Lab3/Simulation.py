@@ -40,6 +40,10 @@ class Simulation:
             for centerPlanet in planetData['planets']:
                 self.createPlanet(centerPlanet)
 
+    def resetEverything(self):
+        self.centerPlanets.clear()
+        self.data.meteorManager.resetAllMeteors()
+        self.loadPlanets()
 
     def __getAllPlanets(self, curPlanet):
         progress = []

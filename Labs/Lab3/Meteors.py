@@ -53,6 +53,12 @@ class Meteor:
     def getSize(self):
         return self.size
 
+    def getMass(self):
+        return self.mass
+
+    def getSpeed(self):
+        return self.speed
+
     def destroy(self):
         self.data.meteorManager.removeMeteor(self)
 
@@ -67,9 +73,10 @@ class Meteor:
         for planet in self.data.simulation.getAllPlanets():
             if calculateDistance(self.position, planet.getPosition()) < self.size / 2 + planet.getSize() / 2:
                 self.mergeWithPlanet(planet)
+                return
 
     def __updatePhysics(self):
-        self.position = CanvasUtils.getMovedPoint(self.position, self.angle, self.speed * self.data.timeScale * self.data.deltaTime)
+        self.position = CanvasUtils.offsetPoint(self.position, self.angle, self.speed * self.data.timeScale * self.data.deltaTime)
         if abs(self.position[0]) > 4000 or abs(self.position[1]) > 4000:
             self.destroy()
 
@@ -94,8 +101,7 @@ class Meteor:
         # else:
         self.calculateColor()
         # print(self.mass / max(1, self.size), self.color.hue())
-        CanvasUtils.drawSphereAt(painter=painter, data=self.data, raw_pos=self.position, radius=self.size / 2, fill_color=self.color,
-                                 outline_color=QColor(255, 255, 255), outline_width=3)
+        CanvasUtils.drawSphereAt(painter=painter, data=self.data, raw_pos=self.position, radius=self.size / 2, fill_color=QColor('#77424245'), outline_color=self.color, outline_width=3)
 
     def updateGraphics(self, painter: QPainter):
         self.__updateGraphics(painter=painter)
@@ -114,8 +120,8 @@ class MeteorManager:
     lastPressLocation = (0, 0)
     curDirectionTargetPoint = None
     dragDistanceThreshold = 2
-    min_drag_distance_to_draw_arrow = 5
-    lastMeteorAngle = 0
+    min_drag_distance_to_draw_arrow = 0
+    lastMeteorAngle = None
 
     def __init__(self, data: Data):
         self.data = data
@@ -123,11 +129,15 @@ class MeteorManager:
         self.currentMeteor = None
         self.activeMeteors = []
 
-    def setMeteorSpawnPoint(self, raw_pos):
+    def setMeteorSpawnPoint(self, raw_pos=None):
         if self.currentMeteor is None:
             self.currentMeteor = Meteor(self.data)
+            self.currentMeteor.setVisible(True)
 
-        pos = self.data.navigation.convertPosDisplayToAbstract(raw_pos)
+        if raw_pos is None:
+            pos = self.lastPressLocation
+        else:
+            pos = self.data.navigation.convertPosDisplayToAbstract(raw_pos)
         self.currentMeteor.setPosition(pos)
 
         self.data.asteroidMenuWidget.onSpeedChange()
@@ -173,15 +183,21 @@ class MeteorManager:
         self.mouseState = MouseState.DRAGGING
         self.curDirectionTargetPoint = curPos
 
+    def launchCurMeteorAuto(self):
+        self.launchCurMeteor(speed=self.data.asteroidMenuWidget.speedWidget.getValue(), mass=self.data.asteroidMenuWidget.massWidget.getValue())
+
     def launchCurMeteor(self, speed, mass):
-        if self.currentMeteor is None or self.curDirectionTargetPoint is None:
+        if self.currentMeteor is None or self.curDirectionTargetPoint is None and self.lastMeteorAngle is None:
             return
 
-        if calculateDistance(self.lastPressLocation, self.curDirectionTargetPoint) >= self.dragDistanceThreshold:
-            self.currentMeteor.setAngle(self.calculateAngle(self.lastPressLocation, self.curDirectionTargetPoint))
-        else:
-            self.currentMeteor.setAngle(self.currentMeteor.angle)
-        self.lastMeteorAngle = self.currentMeteor.angle
+        if self.curDirectionTargetPoint is None and self.lastMeteorAngle is not None:
+            self.currentMeteor.setAngle(self.lastMeteorAngle)
+        elif self.lastPressLocation is not None and self.curDirectionTargetPoint is not None:
+            if calculateDistance(self.lastPressLocation, self.curDirectionTargetPoint) >= self.dragDistanceThreshold:
+                self.currentMeteor.setAngle(self.calculateAngle(self.lastPressLocation, self.curDirectionTargetPoint))
+            else:
+                self.currentMeteor.setAngle(self.currentMeteor.angle)
+            self.lastMeteorAngle = self.currentMeteor.angle
 
         self.currentMeteor.setVisible(True)
         self.currentMeteor.setSpeed(speed)
@@ -192,6 +208,10 @@ class MeteorManager:
 
     def removeMeteor(self, meteor):
         self.activeMeteors.remove(meteor)
+
+    def resetAllMeteors(self):
+        self.activeMeteors.clear()
+        self.currentMeteor = None
 
     def onMeteorModeToggled(self):
         if self.currentMeteor is not None:
@@ -207,17 +227,25 @@ class MeteorManager:
         if self.data.meteorMode:
             if self.currentMeteor is not None:
                 self.currentMeteor.updateGraphics(painter)
-                if self.curDirectionTargetPoint is not None:
-                    if calculateDistance(self.lastPressLocation, self.curDirectionTargetPoint) > self.min_drag_distance_to_draw_arrow:
-                        color = self.currentMeteor.getColor()
-                        color.setAlpha(120)
 
-                        CanvasUtils.drawArrowPointerAt(painter=painter, data=self.data, start_point_raw=self.lastPressLocation,
-                                                       angle_degrees=self.calculateAngle(self.lastPressLocation, self.curDirectionTargetPoint),
-                                                       length=100, originalSize=self.currentMeteor.getSize(), color=QColor('#77424245'), outlineColor=color, outlineWidth=2, long_side_ratio=5)
-                        # CanvasUtils.drawLineAt(painter=painter, data=self.data,
-                        #                        point1_raw=self.lastPressLocation, point2_raw=self.curDirectionTargetPoint,
-                        #                        color=QColor(255, 255, 255), width=4)
-                        # 424245 # 707cff
+                angle = None
+
+                if self.lastMeteorAngle is not None and self.curDirectionTargetPoint is None:
+                    angle = self.lastMeteorAngle
+                elif self.lastPressLocation is not None and self.curDirectionTargetPoint is not None:
+                    if calculateDistance(self.lastPressLocation, self.curDirectionTargetPoint) > self.min_drag_distance_to_draw_arrow and angle is None:
+                        angle = self.calculateAngle(self.lastPressLocation, self.curDirectionTargetPoint)
+
+                color = self.currentMeteor.getColor()
+                color.setAlpha(120)
+
+                if angle is not None:
+
+                    CanvasUtils.drawArrowPointerAt(painter=painter, data=self.data, start_point_raw=self.lastPressLocation,
+                                                   angle_degrees=angle, originalSize=self.currentMeteor.getSize(), originalSpeed=self.currentMeteor.getSpeed(), color=QColor('#77424245'), outlineColor=color, outlineWidth=2)
+                    # CanvasUtils.drawLineAt(painter=painter, data=self.data,
+                    #                        point1_raw=self.lastPressLocation, point2_raw=self.curDirectionTargetPoint,
+                    #                        color=QColor(255, 255, 255), width=4)
+                    # 424245 # 707cff
         for meteor in self.activeMeteors:
             meteor.updateGraphics(painter)

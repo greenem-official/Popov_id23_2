@@ -1,7 +1,6 @@
-from PyQt6.QtGui import QMouseEvent
 from PyQt6.QtWidgets import QVBoxLayout, QPushButton, QLabel, QSlider, QHBoxLayout, QSpacerItem, \
     QSizePolicy
-from PyQt6.QtCore import Qt, QPoint, QRect, QSize
+from PyQt6.QtCore import Qt, QPoint, QRect
 
 from Labs.Lab3.Data import Data
 from Labs.Lab3.util.Debugging import color_map, DebuggableQWidget

@@ -1,5 +1,3 @@
-from PyQt6.QtGui import QPainter
-
 from Labs.Lab3.FrameUpdater import FrameUpdater
 
 

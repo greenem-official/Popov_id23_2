@@ -1,5 +1,4 @@
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QWheelEvent, QMouseEvent, QDragMoveEvent
+from PyQt6.QtGui import QWheelEvent, QMouseEvent
 from Labs.Lab3.Data import Data
 
 class GlobalPositionData:

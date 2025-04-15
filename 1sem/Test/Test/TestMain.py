@@ -1,6 +1,5 @@
 import sys
 
-from PyQt6 import QtGui
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QResizeEvent, QMouseEvent, QKeyEvent
 from PyQt6.QtWidgets import QApplication, QMainWindow

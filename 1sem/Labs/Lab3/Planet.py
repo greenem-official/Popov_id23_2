@@ -1,4 +1,3 @@
-import colorsys
 import math
 
 from Labs.Lab3.util import CanvasUtils

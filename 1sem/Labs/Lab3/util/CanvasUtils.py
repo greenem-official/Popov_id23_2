@@ -1,7 +1,7 @@
 import colorsys
 import math
 
-from PyQt6.QtGui import QColor, QFont, QBrush
+from PyQt6.QtGui import QFont, QBrush
 
 from Labs.Lab3.Data import Data
 from PyQt6.QtGui import QPainter, QPen, QColor

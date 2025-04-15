@@ -1,6 +1,4 @@
-import json
 import math
-import os.path
 
 from PyQt6.QtGui import QColor
 
@@ -34,12 +32,12 @@ class Simulation:
         tube_width = 100
         tube_height = 400
 
-        CanvasUtils.drawRectAtExact(painter=painter, data=self.data, raw_pos=(-container_width/2, container_height), raw_pos2=(container_width/2, 0),
+        CanvasUtils.drawRectAtExact(painter=painter, data=self.data, raw_pos=(-container_width / 2, container_height), raw_pos2=(container_width / 2, 0),
                                     fill_color=QColor('#77424245'), outline_color=QColor('white'), outline_width=3)
-        CanvasUtils.drawRectAtExact(painter=painter, data=self.data, raw_pos=(-tube_width/2, -500), raw_pos2=(tube_width/2, -500 + tube_height),
+        CanvasUtils.drawRectAtExact(painter=painter, data=self.data, raw_pos=(-tube_width / 2, -500), raw_pos2=(tube_width / 2, -500 + tube_height),
                                     fill_color=QColor('#77424245'), outline_color=QColor('white'), outline_width=3)
         if self.data.simActive and not self.data.reachedLevel:
-            CanvasUtils.drawRectAtExact(painter=painter, data=self.data, raw_pos=(-tube_width/2, -500), raw_pos2=(tube_width/2, container_height),
+            CanvasUtils.drawRectAtExact(painter=painter, data=self.data, raw_pos=(-tube_width / 2, -500), raw_pos2=(tube_width / 2, container_height),
                                         fill_color=QColor('#47bcff'), outline_color=None, outline_width=3)
-        CanvasUtils.drawRectAtExact(painter=painter, data=self.data, raw_pos=(-container_width/2, container_height), raw_pos2=(container_width/2, container_height - self.data.waterHeightReal),
+        CanvasUtils.drawRectAtExact(painter=painter, data=self.data, raw_pos=(-container_width / 2, container_height), raw_pos2=(container_width / 2, container_height - self.data.waterHeightReal),
                                     fill_color=QColor('#47bcff'), outline_color=None, outline_width=3)

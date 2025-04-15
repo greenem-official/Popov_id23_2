@@ -8,7 +8,6 @@ from starlette.responses import StreamingResponse
 
 import ImageOperations
 from RequestTypes import BinarizationRequestModel
-from flask import Flask, request
 
 app = FastAPI()
 

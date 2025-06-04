@@ -3,6 +3,13 @@ pillow~=11.1.0
 fastapi~=0.115.12
 numpy~=2.2.4
 pydantic~=2.11.3
+pydantic[email]
 requests~=2.32.3
 uvicorn~=0.34.0
 python-multipart
+passlib
+SQLAlchemy
+bcrypt
+passlib[bcrypt]
+argon2_cffi
+python-jose[cryptography]
